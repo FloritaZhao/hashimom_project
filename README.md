@@ -19,7 +19,7 @@ All business logic lives in the backend, while the React frontend handles user i
 hashimom/
 ├── backend/    # Flask + SQLAlchemy application
 ├── frontend/   # React + Vite + TypeScript client
-├── scripts/    # Optional utility scripts (e.g. seed data)
+├── .gitignore/    # contains sensitive info
 └── README.md   # Project introduction and development guide
 ```
 
