@@ -1,0 +1,61 @@
+# Python
+.venv/
+venv/
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+env/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Environment variables (contains API keys)
+.env
+.env.local
+.env.production
+.env.development
+
+# Database & Instance files
+*.db
+*.sqlite
+*.sqlite3
+instance/
+data/
+
+# Logs
+*.log
+logs/
+
+# Session & Cookie files
+cookies.txt
+session.txt
+
+# API Keys & Secrets
+secrets/
+keys/
+credentials/
+*.key
+*.pem
+
+# Node
+frontend/node_modules/
+frontend/.next/
+frontend/dist/
+frontend/build/
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+coverage/
+.coverage
+.pytest_cache/
