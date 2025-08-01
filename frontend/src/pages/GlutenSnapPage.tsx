@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import * as api from '../api';
+import { useUser } from '../context/UserContext';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -18,6 +19,7 @@ interface PhotoHistory {
  * GlutenSnapPage with AI-powered food analysis, interactive chat, and photo history.
  */
 const GlutenSnapPage: React.FC = () => {
+  const { user } = useUser();
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<api.GlutenScanResult | null>(null);
@@ -35,7 +37,10 @@ const GlutenSnapPage: React.FC = () => {
 
   // Load photo history from localStorage on component mount
   useEffect(() => {
-    const savedHistory = localStorage.getItem('gluten-snap-history');
+    if (!user) return;
+    
+    const historyKey = `gluten-snap-history-${user.user_id}`;
+    const savedHistory = localStorage.getItem(historyKey);
     if (savedHistory) {
       try {
         const parsed = JSON.parse(savedHistory);
@@ -47,12 +52,15 @@ const GlutenSnapPage: React.FC = () => {
         console.error('Failed to load photo history:', error);
       }
     }
-  }, []);
+  }, [user]);
 
   // Save photo history to localStorage
   const savePhotoHistory = (history: PhotoHistory[]) => {
+    if (!user) return;
+    
     try {
-      localStorage.setItem('gluten-snap-history', JSON.stringify(history));
+      const historyKey = `gluten-snap-history-${user.user_id}`;
+      localStorage.setItem(historyKey, JSON.stringify(history));
     } catch (error) {
       console.error('Failed to save photo history:', error);
     }

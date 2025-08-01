@@ -129,5 +129,5 @@ export async function sendFoodChatMessage(payload: FoodChatPayload): Promise<Foo
 
 // AI messages
 export async function getAIMessage(): Promise<any> {
-  return request('/ai_messages');
+  return request('/ai_messages/encouragement');
 }

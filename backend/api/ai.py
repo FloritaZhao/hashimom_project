@@ -87,7 +87,6 @@ def analyze_food_image(image_data: str) -> dict:
 2. List the main ingredients you can identify
 3. Assess if it likely contains gluten (wheat, barley, rye, etc.)
 4. Rate your confidence in the analysis (high/medium/low)
-
 Format your response as a clear, helpful analysis for someone with celiac disease or gluten sensitivity."""
         
         # Updated API call format for current Gemini
@@ -160,18 +159,14 @@ def food_chat() -> Any:
         model = genai.GenerativeModel('gemini-2.0-flash')
         
         prompt = f"""You are a helpful assistant specializing in food analysis and gluten-free guidance.
-
 Context from previous analysis: {context}
-
 User question: {message}
-
 Provide helpful, accurate information about:
 - Food ingredients and preparation
 - Gluten content assessment  
 - Celiac disease and gluten sensitivity considerations
 - Alternative food suggestions
 - General nutritional information
-
 Be supportive and informative, but always remind users to consult healthcare providers for medical advice. Keep responses concise and practical."""
 
         response = model.generate_content(prompt)
@@ -194,6 +189,43 @@ Be supportive and informative, but always remind users to consult healthcare pro
         })
 
 # ----- AI Messages -----
+def generate_encouragement() -> str:
+    """Generate a short, encouraging message for the user."""
+    api_key = Config.GEMINI_API_KEY
+    if not api_key:
+        return "You're doing great! Keep up the hard work."
+    
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.0-flash')
+        
+        prompt = "Write a short, uplifting, and encouraging message for someone tracking their health. Make it sound personal and optimistic. Less than 25 words"
+        response = model.generate_content(prompt)
+        return response.text.strip()
+
+    except Exception as e:
+        import logging
+        logging.error(f"Gemini encouragement error: {str(e)}")
+        return "Stay positive and keep making healthy choices!"
+
+@bp.route("/ai_messages/encouragement", methods=["GET"])
+def get_encouragement_message() -> Any:
+    """Generate and return a new encouragement message."""
+    message_text = generate_encouragement()
+    
+    # Create and save the message to the database
+    new_message = AIMessage(
+        user_id=_u().id,
+        message=message_text,
+        created_at=datetime.utcnow()
+    )
+    db.session.add(new_message)
+    db.session.commit()
+    
+    return jsonify(new_message.to_dict())
+
+
 @bp.route("/ai_messages", methods=["GET"])
 def latest_msg() -> Any:
     msg = (
@@ -201,4 +233,4 @@ def latest_msg() -> Any:
         .order_by(AIMessage.created_at.desc())
         .first()
     )
-    return jsonify(msg.to_dict() if msg else {"message": None})
+    return jsonify(msg.to_dict() if msg else {"message": "Welcome! Let's start tracking your progress."})
