@@ -49,7 +49,8 @@ def create_app() -> Flask:
         # Generate initial AI messages for existing users
         generate_initial_messages(app)
 
-    app.register_blueprint(api_bp, url_prefix="/api")
+    # Register aggregated API blueprint once at /api
+    app.register_blueprint(api_bp)
     init_scheduler(app)
     return app
 
