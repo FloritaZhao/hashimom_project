@@ -22,3 +22,17 @@ class MedicationIn(BaseModel):
     dose: str | None = None
     time_of_day: str | None = None
     taken_at: datetime | None = None
+ 
+# --- Profiles ---
+class ProfileIn(BaseModel):
+    lmp_date: date | None = None
+    due_date: date | None = None
+    high_risk_notes: str | None = None
+
+
+class ProfileOut(BaseModel):
+    lmp_date: date | None
+    due_date: date | None
+    high_risk_notes: str
+    gestational_age_weeks: int | None
+    trimester: str

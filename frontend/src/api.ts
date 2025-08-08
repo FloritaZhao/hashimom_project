@@ -6,7 +6,9 @@
  * responses.  Sensitive information is never logged.
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:5001/api';
+// Prefer localhost to avoid cookie-domain mismatches with 127.0.0.1
+// Env override via VITE_API_BASE remains supported for deployments
+const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) || 'http://localhost:5001/api';
 
 interface RequestOptions extends RequestInit {
   body?: any;
@@ -76,6 +78,23 @@ export async function createSymptom(payload: SymptomPayload): Promise<any> {
   return request('/symptoms', { method: 'POST', body: payload });
 }
 
+export async function getSymptomsFiltered(params: { start_date?: string; end_date?: string; symptom_name?: string } = {}): Promise<any[]> {
+  const q = new URLSearchParams();
+  if (params.start_date) q.set('start_date', params.start_date);
+  if (params.end_date) q.set('end_date', params.end_date);
+  if (params.symptom_name) q.set('symptom_name', params.symptom_name);
+  const qs = q.toString();
+  return request(`/symptoms${qs ? `?${qs}` : ''}`);
+}
+
+export async function getSymptomAISuggestion(body: { symptom: string; severity: number }): Promise<{ suggestion: string | null; disclaimer: string }> {
+  return request('/symptoms/ai_suggestion', { method: 'POST', body });
+}
+
+export async function getExportSummary(days = 30): Promise<any> {
+  return request(`/exports/summary?days=${days}`);
+}
+
 // Medications
 export interface MedicationPayload {
   medication_name: string;
@@ -130,4 +149,31 @@ export async function sendFoodChatMessage(payload: FoodChatPayload): Promise<Foo
 // AI messages
 export async function getAIMessage(): Promise<any> {
   return request('/ai_messages/encouragement');
+}
+
+// Profile
+export interface ProfileOut {
+  lmp_date: string | null;
+  due_date: string | null;
+  high_risk_notes: string;
+  gestational_age_weeks: number | null;
+  trimester: 'T1' | 'T2' | 'T3' | '-';
+}
+
+export interface ProfileIn {
+  lmp_date?: string | null;
+  due_date?: string | null;
+  high_risk_notes?: string | null;
+}
+
+export async function getProfile(): Promise<ProfileOut> {
+  return request('/profile');
+}
+
+export async function putProfile(body: ProfileIn): Promise<ProfileOut> {
+  return request('/profile', { method: 'PUT', body });
+}
+
+export async function deleteSymptom(id: number): Promise<{ status: string; id: number }> {
+  return request(`/symptoms/${id}`, { method: 'DELETE' });
 }

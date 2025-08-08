@@ -4,7 +4,7 @@ from typing import Any
 import os, requests
 from flask import Blueprint, jsonify, request
 from .utils import current_user
-from models import db, GlutenScan, AIMessage
+from models import db, GlutenScan, AIMessage, Profile
 from datetime import datetime
 from config import Config
 
@@ -233,4 +233,18 @@ def latest_msg() -> Any:
         .order_by(AIMessage.created_at.desc())
         .first()
     )
-    return jsonify(msg.to_dict() if msg else {"message": "Welcome! Let's start tracking your progress."})
+    # Attach trimester info for frontend convenience
+    trimester = "-"
+    prof = Profile.query.filter_by(user_id=_u().id).first()
+    if prof:
+        from datetime import date as _date
+        from utils.gestation import calculate_by_lmp, calculate_by_due
+        today = _date.today()
+        if prof.lmp_date:
+            trimester = calculate_by_lmp(prof.lmp_date, today).get("trimester", "-")  # type: ignore
+        elif prof.due_date:
+            trimester = calculate_by_due(prof.due_date, today).get("trimester", "-")  # type: ignore
+
+    payload = msg.to_dict() if msg else {"message": "Welcome! Let's start tracking your progress."}
+    payload.update({"trimester": trimester})
+    return jsonify(payload)

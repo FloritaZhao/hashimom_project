@@ -11,7 +11,11 @@ import NewLabPage from './pages/NewLabPage';
 import NewSymptomPage from './pages/NewSymptomPage';
 import TrendsPage from './pages/TrendsPage';
 import GlutenSnapPage from './pages/GlutenSnapPage';
+import NewMedicationPage from './pages/NewMedicationPage';
 import UserProfilePage from './pages/UserProfilePage';
+import ProfilePage from './features/profile/ProfilePage';
+import SymptomHistory from './features/symptoms/SymptomHistory';
+import SymptomTrend from './features/symptoms/SymptomTrend';
 
 /**
  * Root component defining client‑side routes using React Router.
@@ -32,14 +36,19 @@ const App: React.FC = () => {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="add-entry" element={<AddEntryPage />} />
-          <Route path="profile" element={<UserProfilePage />} />
+          <Route path="profile" element={<ProfilePage />} />
           <Route path="labs">
             <Route path="new" element={<NewLabPage />} />
           </Route>
           <Route path="symptoms">
             <Route path="new" element={<NewSymptomPage />} />
+            <Route path="history" element={<SymptomHistory />} />
+            <Route path="trend" element={<SymptomTrend />} />
           </Route>
           <Route path="trends" element={<TrendsPage />} />
+          <Route path="medications">
+            <Route path="new" element={<NewMedicationPage />} />
+          </Route>
           <Route path="gluten-snap" element={<GlutenSnapPage />} />
         </Route>
         {/* Catch all: redirect unknown paths to dashboard if logged in else login */}

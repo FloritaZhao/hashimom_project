@@ -57,6 +57,13 @@ const AddEntryPage: React.FC = () => {
                 <div className="text-sm font-medium text-black">Gluten Snap</div>
               </Link>
               <Link
+                to="/medications/new"
+                className="bg-gray-50 border border-gray-200 rounded-lg p-3 hover:bg-gray-100 transition-colors text-center"
+              >
+                <div className="text-lg mb-1">💊</div>
+                <div className="text-sm font-medium text-black">Quick Medication</div>
+              </Link>
+              <Link
                 to="/trends"
                 className="bg-gray-50 border border-gray-200 rounded-lg p-3 hover:bg-gray-100 transition-colors text-center"
               >

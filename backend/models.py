@@ -17,7 +17,7 @@ the data model straightforward.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional
 
 from flask_sqlalchemy import SQLAlchemy
@@ -44,6 +44,7 @@ class User(db.Model):
     medications = db.relationship("Medication", backref="user", lazy=True, cascade="all, delete-orphan")
     gluten_scans = db.relationship("GlutenScan", backref="user", lazy=True, cascade="all, delete-orphan")
     ai_messages = db.relationship("AIMessage", backref="user", lazy=True, cascade="all, delete-orphan")
+    profile = db.relationship("Profile", backref="user", uselist=False, cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<User {self.nickname}>"
@@ -68,6 +69,65 @@ class Lab(db.Model):
             "result": self.result,
             "units": self.units,
             "test_date": self.test_date.isoformat(),
+        }
+
+
+class Profile(db.Model):
+    """Pregnancy profile for a user (1:1).
+
+    Stores last menstrual period (LMP), estimated due date (EDD), and optional
+    high‑risk notes. Only one profile per user is allowed.
+    """
+
+    __tablename__ = "profiles"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, unique=True)
+    lmp_date = db.Column(db.Date, nullable=True)
+    due_date = db.Column(db.Date, nullable=True)
+    high_risk_notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "lmp_date": self.lmp_date.isoformat() if self.lmp_date else None,
+            "due_date": self.due_date.isoformat() if self.due_date else None,
+            "high_risk_notes": self.high_risk_notes or "",
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class ReferenceRange(db.Model):
+    """Trimester‑specific reference ranges for analytes.
+
+    Unique on (analyte, trimester).
+    """
+
+    __tablename__ = "reference_ranges"
+
+    id = db.Column(db.Integer, primary_key=True)
+    analyte = db.Column(db.String(64), nullable=False)
+    trimester = db.Column(db.String(2), nullable=False)  # T1 | T2 | T3
+    low = db.Column(db.Float, nullable=False)
+    high = db.Column(db.Float, nullable=False)
+    unit = db.Column(db.String(32), nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint("analyte", "trimester", name="uq_reference_ranges_analyte_trimester"),
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "analyte": self.analyte,
+            "trimester": self.trimester,
+            "low": self.low,
+            "high": self.high,
+            "unit": self.unit,
         }
 
 
