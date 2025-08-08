@@ -35,7 +35,7 @@ const NavBar: React.FC = () => {
         
         {/* Clickable Profile image */}
         <button 
-          onClick={() => navigate('/profile')}
+          onClick={() => navigate('/settings')}
           className="w-6 h-6 rounded-full bg-gray-300 overflow-hidden hover:ring-2 hover:ring-blue-500 hover:ring-offset-1 transition-all"
         >
           {user.profileImage ? (

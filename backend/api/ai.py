@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any
 
-import os, requests
+import os
 from flask import Blueprint, jsonify, request
 from .utils import current_user
 from models import db, GlutenScan, AIMessage, Profile
@@ -25,6 +25,19 @@ def _auth():
 def list_scans() -> Any:
     return jsonify([s.to_dict() for s in _u().gluten_scans])
 
+def _short_label_from(analysis_result: dict) -> str:
+    conf = (analysis_result.get("confidence") or "").strip().lower()
+    if conf in {"high","medium","low"}:
+        return conf
+    ga = (analysis_result.get("gluten_assessment") or "").lower()
+    if "gluten" in ga:
+        if "likely" in ga or "contains" in ga or "present" in ga:
+            return "gluten_likely"
+        if "unlikely" in ga or "free" in ga or "absent" in ga:
+            return "gluten_unlikely"
+    return "unknown"
+
+
 @bp.route("/gluten_scans", methods=["POST"])
 def create_scan() -> Any:
     data = request.get_json(silent=True) or {}
@@ -34,11 +47,13 @@ def create_scan() -> Any:
 
     # Use OpenAI Vision API for food analysis
     analysis_result = analyze_food_image(img)
+
+    short_tag = _short_label_from(analysis_result)[:32]
     
     scan = GlutenScan(
         user_id=_u().id,
         image_url="<provided>",
-        result_tag=(analysis_result.get("food_name", "Unknown") or "Unknown")[:120],
+        result_tag=short_tag,
         created_at=datetime.utcnow()
     )
     db.session.add(scan)
@@ -55,7 +70,13 @@ def create_scan() -> Any:
     return jsonify(result), 201
 
 def analyze_food_image(image_data: str) -> dict:
-    """Analyze a food image using Gemini Vision API."""
+    """Analyze a food image using Gemini Vision API.
+
+    Request trimming: keep a single concise prompt to minimize token
+    usage and reduce failure surface. This endpoint is the ONLY place we
+    call the image model for a given photo; chat uses the returned text
+    context and never resends the image.
+    """
     api_key = Config.GEMINI_API_KEY
     if not api_key:
         return {
@@ -82,12 +103,12 @@ def analyze_food_image(image_data: str) -> dict:
         image_bytes = base64.b64decode(image_data)
         image = Image.open(io.BytesIO(image_bytes))
         
-        prompt = """Analyze this food image and provide:
-1. What food/dish is this?
-2. List the main ingredients you can identify
-3. Assess if it likely contains gluten (wheat, barley, rye, etc.)
-4. Rate your confidence in the analysis (high/medium/low)
-Format your response as a clear, helpful analysis for someone with celiac disease or gluten sensitivity."""
+        # Concise prompt (trimmed to reduce load and error surface)
+        prompt = (
+            "Identify the dish from the image, list key ingredients, "
+            "assess gluten presence likelihood, and give a confidence level "
+            "(high/medium/low). Keep it short and practical."
+        )
         
         # Updated API call format for current Gemini
         response = model.generate_content([image, prompt])
@@ -142,8 +163,9 @@ Format your response as a clear, helpful analysis for someone with celiac diseas
 def food_chat() -> Any:
     """Chat about food analysis results using Gemini API."""
     data = request.get_json(silent=True) or {}
-    message = data.get("message", "").strip()
-    context = data.get("context", "")  # Previous analysis context
+    message = (data.get("message", "") or "").strip()[:500]
+    # Previous analysis context (text only). Truncate to cap token usage.
+    context = (data.get("context", "") or "")[:1200]
     
     if not message:
         return jsonify(error="Message is required"), 400
@@ -159,16 +181,15 @@ def food_chat() -> Any:
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-2.0-flash')
         
-        prompt = f"""You are a helpful assistant specializing in food analysis and gluten-free guidance.
-Context from previous analysis: {context}
-User question: {message}
-Provide helpful, accurate information about:
-- Food ingredients and preparation
-- Gluten content assessment  
-- Celiac disease and gluten sensitivity considerations
-- Alternative food suggestions
-- General nutritional information
-Be supportive and informative, but always remind users to consult healthcare providers for medical advice. Keep responses concise and practical."""
+        # Trimmed chat prompt; do not resend image here. Chat relies on
+        # short text context returned from the single image analysis call.
+        prompt = (
+            "You are a concise assistant for gluten-free guidance. "
+            f"Context: {context}\n"
+            f"User: {message}\n"
+            "Answer briefly and helpfully. If advice could be medical, "
+            "suggest consulting a healthcare professional."
+        )
 
         response = model.generate_content(prompt)
         ai_response = response.text
