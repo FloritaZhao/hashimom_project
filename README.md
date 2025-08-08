@@ -73,10 +73,10 @@ By default the frontend talks to the backend at `http://localhost:5001/api` (con
 
 - `GET /api/profile` → returns current user's pregnancy profile. If none exists, returns an empty profile
 - `PUT /api/profile` → upsert profile
-- `GET /api/labs`, `POST /api/labs`
+- `GET /api/labs`, `POST /api/labs`, **DELETE /api/labs/:id** (new)
 - `GET /api/symptoms`, `POST /api/symptoms`, **DELETE /api/symptoms/:id** (new)
 - `GET /api/medications`, `POST /api/medications`
-- `GET /api/gluten_scans`, `POST /api/gluten_scans`
+- `GET /api/gluten_scans`, `POST /api/gluten_scans`, **DELETE /api/gluten_scans/:id** (new)
 - `POST /api/food_chat`
 - `GET /api/ai_messages/encouragement`
 
@@ -95,15 +95,15 @@ By default the frontend talks to the backend at `http://localhost:5001/api` (con
 ## What’s New (Aug 2025)
 
 - Dashboard
-  - Removed the middle row stat cards to simplify the layout
-  - Replaced “Recent Symptoms (7d)” with a single Recharts ScatterChart:
-    - X: last 7 days; Y: severity 1–5
-    - Colored micro “pill” points (1–2 green, 3 amber, 4–5 red) with abbreviation labels and hover tooltips
-    - Robust local‑date handling and jitter to avoid overlap
-  - Trend chart toggles now include: TSH, FT4, TPOAb, FT3
-  - Aligned chart left axes for visual consistency
-- Symptoms
-  - New delete endpoint `DELETE /api/symptoms/:id` and UI delete button in history list
+  - Event Correlation Map as the primary view (labs + symptoms + gluten) with real time‑scale X axis
+  - Cluster highlight redesign: gray band + round "more" badge; hover summary and clickable Drawer; overlapping clusters auto‑merged
+  - Embedded centered Legend Panel with toggles; added quick entry cards below for Lab History and Symptom History
+- History Pages
+  - Lab History and Symptom History now have per‑row Delete actions (labs and symptoms)
+- Gluten Snap
+  - Recent Photos support per‑item delete with confirmation modal (removes server record and local history)
+- Add Entry
+  - Removed “Quick Actions” block to simplify the page
 
 ## Contributing
 

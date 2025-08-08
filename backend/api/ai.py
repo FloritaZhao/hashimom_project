@@ -69,6 +69,17 @@ def create_scan() -> Any:
     
     return jsonify(result), 201
 
+
+@bp.route("/gluten_scans/<int:scan_id>", methods=["DELETE"])
+def delete_scan(scan_id: int) -> Any:
+    user = _u()
+    scan = GlutenScan.query.filter_by(id=scan_id, user_id=user.id).first()
+    if not scan:
+        return jsonify(error="Not found"), 404
+    db.session.delete(scan)
+    db.session.commit()
+    return jsonify({"status": "deleted", "id": scan_id})
+
 def analyze_food_image(image_data: str) -> dict:
     """Analyze a food image using Gemini Vision API.
 

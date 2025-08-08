@@ -1,19 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import {
-  LineChart,
-  Line,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  ScatterChart,
-  Scatter,
-} from 'recharts';
 import * as api from '../api';
 import { useQuery } from '@tanstack/react-query';
 import { useUser } from '../context/UserContext';
+import EventCorrelationMap from '../components/EventCorrelationMap';
 // Removed StatsCards per design change
 
 interface ChartDataPoint {
@@ -24,58 +14,34 @@ interface ChartDataPoint {
 const DashboardPage: React.FC = () => {
   const [labs, setLabs] = useState<any[]>([]);
   const [symptoms, setSymptoms] = useState<any[]>([]);
-  const [medications, setMedications] = useState<any[]>([]);
+  // const [medications, setMedications] = useState<any[]>([]);
+  const [glutenScans, setGlutenScans] = useState<any[]>([]);
   const [aiMessage, setAIMessage] = useState<string | null>(
     "You're doing great! Keep tracking your health journey. 💪"
   );
-  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
-  const [activeChart, setActiveChart] = useState<string>('TSH');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
-  const { logout } = useUser();
+  const { logout, user } = useUser() as any;
   const navigate = useNavigate();
 
-  const { data: profile } = useQuery({ queryKey: ['profile'], queryFn: api.getProfile });
+  const { data: profile } = useQuery({ queryKey: ['profile', user?.user_id], queryFn: api.getProfile, enabled: !!user });
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [labsData, symptomsData, medsData, aiData] = await Promise.all([
+        const [labsData, symptomsData, aiData, scans] = await Promise.all([
           api.getLabs(),
           api.getSymptoms(),
-          api.getMedications(),
           api.getAIMessage(),
+          api.getGlutenScans(),
         ]);
 
         setLabs(labsData);
         setSymptoms(symptomsData);
-        setMedications(medsData);
+        setGlutenScans(scans);
         if (aiData?.message) {
           setAIMessage(aiData.message);
         }
-
-        const processedChartData = labsData
-          .filter(
-            (lab: any) =>
-              lab.test_name && typeof lab.test_name === 'string' && !isNaN(parseFloat(lab.result))
-          )
-          .map((lab: any) => ({
-            date: new Date(lab.test_date).toISOString().split('T')[0],
-            value: parseFloat(lab.result),
-            name: lab.test_name.toUpperCase(),
-          }))
-          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-        // Group by date
-        const groupedByDate: { [date: string]: ChartDataPoint } = {};
-        processedChartData.forEach((d) => {
-          if (!groupedByDate[d.date]) {
-            groupedByDate[d.date] = { date: d.date };
-          }
-          groupedByDate[d.date][d.name] = d.value;
-        });
-
-        setChartData(Object.values(groupedByDate));
       } catch (err: any) {
         if (err.message?.includes('Unauthorized') || err.message?.includes('401')) {
           await logout();
@@ -88,14 +54,7 @@ const DashboardPage: React.FC = () => {
       }
     };
     load();
-  }, [logout, navigate]);
-
-  const yAxisTickFormatter = (value: any) => {
-    if (typeof value === 'number') {
-      return value.toFixed(1);
-    }
-    return value;
-  };
+  }, [logout, navigate, profile?.lmp_date, profile?.due_date]);
 
   if (loading) {
     return (
@@ -113,11 +72,6 @@ const DashboardPage: React.FC = () => {
     );
   }
 
-  const discovered = new Set(chartData.flatMap(d => Object.keys(d).filter(k => k !== 'date')));
-  const desiredOrder = ['TSH', 'FT4', 'TPOAb', 'FT3'];
-  const uniqueTests = desiredOrder.filter(t => true).concat(
-    Array.from(discovered).filter(t => !desiredOrder.includes(t))
-  );
   // Helpers to avoid timezone drift by using local YYYY-MM-DD keys everywhere
   const toLocalYMD = (d: Date) => {
     const y = d.getFullYear();
@@ -242,164 +196,31 @@ const DashboardPage: React.FC = () => {
         {aiMessage && <p className="text-sm text-black">{aiMessage}</p>}
       </div>
 
-      {/* Stats cards removed */}
+      {/* Event Correlation Map */}
+      <EventCorrelationMap labs={labs} symptoms={symptoms} glutenScans={glutenScans} profile={profile as any} />
 
-      {/* Trend Chart */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-sm font-semibold text-black">Your Trends</h3>
-          {uniqueTests.length > 1 && (
-            <div className="flex space-x-2">
-              {uniqueTests.map(test => (
-                <button
-                  key={test}
-                  onClick={() => setActiveChart(test)}
-                  className={`px-3 py-1 text-xs rounded-full ${
-                    activeChart === test ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'
-                  }`}
-                >
-                  {test}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {chartData.length > 0 ? (
-          (() => {
-            const hasDataForActive = chartData.some((d: any) => d[activeChart] != null);
-            if (!hasDataForActive) {
-              return (
-                <div className="h-48 bg-gray-50 rounded-lg flex flex-col items-center justify-center text-center p-6 text-gray-600">
-                  No data for {activeChart}.
-                </div>
-              );
-            }
-            return (
-              <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={chartData} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 12 }}
-                    stroke="#666"
-                    tickFormatter={(value) =>
-                      new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                    }
-                  />
-                  <YAxis
-                    width={36}
-                    tick={{ fontSize: 12 }}
-                    stroke="#666"
-                    tickFormatter={yAxisTickFormatter}
-                    domain={['dataMin - 1', 'dataMax + 1']}
-                  />
-                  <Tooltip
-                    labelFormatter={(value) => new Date(value).toLocaleDateString()}
-                    formatter={(value: any, name: any) => [value, name]}
-                    contentStyle={{
-                      backgroundColor: 'white',
-                      border: '1px solid #e0e0e0',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey={activeChart}
-                    stroke="#2D6EFF"
-                    strokeWidth={2}
-                    dot={{ fill: '#2D6EFF', r: 4 }}
-                    activeDot={{ r: 6 }}
-                    connectNulls
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            );
-          })()
-        ) : (
-          <div className="h-48 bg-gray-50 rounded-lg flex flex-col items-center justify-center text-center p-6">
-            <p>No lab data to display trends.</p>
-          </div>
-        )}
-      </div>
-
-      {/* Recent Symptoms Overview as a single 7d scatter chart */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-semibold text-black">Recent Symptoms (7d)</h3>
-          <Link to="/symptoms/history" className="text-blue-600 text-xs">View all</Link>
-        </div>
-        {scatterData.length === 0 ? (
+      {/* History entry cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <button
+          onClick={() => navigate('/lab-history')}
+          className="text-left bg-blue-50 hover:bg-blue-100 transition transform hover:scale-[1.01] active:scale-[0.99] border border-blue-100 rounded-lg p-4 shadow-sm hover:shadow flex items-start gap-3"
+        >
+          <div className="text-xl">🧪</div>
           <div>
-            <p className="text-sm text-gray-600">No recent symptoms</p>
+            <div className="text-sm font-semibold text-black">Lab History</div>
+            <div className="text-xs text-gray-700">View all laboratory results (TSH, FT4, TPOAb, FT3)</div>
           </div>
-        ) : (
-          <ResponsiveContainer width="100%" height={260}>
-            <ScatterChart margin={{ top: 10, right: 20, left: 20, bottom: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis
-                dataKey="x"
-                type="number"
-                domain={[0, 6]}
-                tick={{ fontSize: 12 }}
-                stroke="#666"
-                tickCount={7}
-                tickFormatter={(v) => {
-                  const i = Math.round(Number(v));
-                  const d = last7Dates[i];
-                  if (!d) return '';
-                  const [y, m, day] = d.split('-');
-                  return `${m}/${day}`;
-                }}
-              />
-              <YAxis
-                dataKey="severity"
-                type="number"
-                domain={[1, 5]}
-                allowDecimals={false}
-                width={36}
-                tick={{ fontSize: 12 }}
-                stroke="#666"
-              />
-              <Tooltip
-                cursor={{ strokeDasharray: '3 3' }}
-                contentStyle={{ backgroundColor: 'white', border: '1px solid #e0e0e0', borderRadius: '8px', fontSize: '12px' }}
-                content={({ active, payload }) => {
-                  if (!active || !payload || payload.length === 0) return null;
-                  const d: any = payload[0]?.payload;
-                  if (!d) return null;
-                  return (
-                    <div className="bg-white border border-gray-200 rounded-lg shadow p-3 text-sm">
-                      <div className="font-medium text-black mb-1">{d.date}</div>
-                      <div className="text-gray-800">{d.name}: {d.severity}</div>
-                      {d.note && <div className="text-gray-600 mt-1">{d.note}</div>}
-                    </div>
-                  );
-                }}
-              />
-              <Scatter
-                data={scatterData}
-                shape={(props: any) => {
-                  const { cx, cy, payload } = props;
-                  const label = payload.abbrev;
-                  const bg = payload.color;
-                  return (
-                    <g transform={`translate(${cx - 12}, ${cy - 8})`}>
-                      <rect rx="8" ry="8" width="24" height="16" fill={bg} opacity="0.9" />
-                      <text x={12} y={11} textAnchor="middle" fontSize="10" fill="#ffffff">{label}</text>
-                    </g>
-                  );
-                }}
-              />
-            </ScatterChart>
-          </ResponsiveContainer>
-        )}
-        <div className="mt-2 flex items-center gap-3 text-[10px] text-gray-500">
-          <span>1–2: <span className="inline-block w-2 h-2 rounded-full align-middle" style={{ backgroundColor: '#22c55e' }}></span></span>
-          <span>3: <span className="inline-block w-2 h-2 rounded-full align-middle" style={{ backgroundColor: '#f59e0b' }}></span></span>
-          <span>4–5: <span className="inline-block w-2 h-2 rounded-full align-middle" style={{ backgroundColor: '#ef4444' }}></span></span>
-        </div>
+        </button>
+        <button
+          onClick={() => navigate('/symptom-history')}
+          className="text-left bg-pink-50 hover:bg-pink-100 transition transform hover:scale-[1.01] active:scale-[0.99] border border-pink-100 rounded-lg p-4 shadow-sm hover:shadow flex items-start gap-3"
+        >
+          <div className="text-xl">💓</div>
+          <div>
+            <div className="text-sm font-semibold text-black">Symptom History</div>
+            <div className="text-xs text-gray-700">View all symptom entries and severity changes</div>
+          </div>
+        </button>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import * as api from '../api';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface User {
   user_id: number;
@@ -20,6 +21,7 @@ const UserContext = createContext<UserContextValue | undefined>(undefined);
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -72,11 +74,14 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       profileImage: storedProfileImage || undefined
     };
     setUser(userWithExtras);
+    // Clear any previous user's cached queries to avoid cross-user data
+    try { queryClient.clear(); } catch {}
   };
 
   const logoutUser = async () => {
     await api.logout();
     setUser(null);
+    try { queryClient.clear(); } catch {}
   };
 
   const updateProfile = (updates: { nickname?: string; profileImage?: string }) => {

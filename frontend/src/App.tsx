@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
 import Layout from './components/Layout';
@@ -10,6 +10,8 @@ import AddEntryPage from './pages/AddEntryPage';
 import NewLabPage from './pages/NewLabPage';
 import NewSymptomPage from './pages/NewSymptomPage';
 import TrendsPage from './pages/TrendsPage';
+const LabHistoryPage = lazy(() => import('./pages/LabHistoryPage'));
+const SymptomHistoryPage = lazy(() => import('./pages/SymptomHistoryPage'));
 import GlutenSnapPage from './pages/GlutenSnapPage';
 import NewMedicationPage from './pages/NewMedicationPage';
 import UserProfilePage from './pages/UserProfilePage';
@@ -23,6 +25,7 @@ import SymptomTrend from './features/symptoms/SymptomTrend';
 const App: React.FC = () => {
   return (
     <UserProvider>
+      <Suspense fallback={<div className="p-4 text-sm text-gray-500">Loading…</div>}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route
@@ -47,6 +50,8 @@ const App: React.FC = () => {
             <Route path="trend" element={<SymptomTrend />} />
           </Route>
           <Route path="trends" element={<TrendsPage />} />
+          <Route path="lab-history" element={<LabHistoryPage />} />
+          <Route path="symptom-history" element={<SymptomHistoryPage />} />
           <Route path="medications">
             <Route path="new" element={<NewMedicationPage />} />
           </Route>
@@ -60,6 +65,7 @@ const App: React.FC = () => {
           }
         />
       </Routes>
+      </Suspense>
     </UserProvider>
   );
 };

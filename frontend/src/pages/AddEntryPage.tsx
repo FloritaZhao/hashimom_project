@@ -45,33 +45,7 @@ const AddEntryPage: React.FC = () => {
             </div>
           </Link>
 
-          {/* Quick Actions */}
-          <div className="pt-4 border-t border-gray-100">
-            <h3 className="text-sm font-medium text-gray-700 mb-3">Quick Actions</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <Link
-                to="/gluten-snap"
-                className="bg-blue-50 border border-blue-200 rounded-lg p-3 hover:bg-blue-100 transition-colors text-center"
-              >
-                <div className="text-lg mb-1">📸</div>
-                <div className="text-sm font-medium text-black">Gluten Snap</div>
-              </Link>
-              <Link
-                to="/medications/new"
-                className="bg-gray-50 border border-gray-200 rounded-lg p-3 hover:bg-gray-100 transition-colors text-center"
-              >
-                <div className="text-lg mb-1">💊</div>
-                <div className="text-sm font-medium text-black">Quick Medication</div>
-              </Link>
-              <Link
-                to="/trends"
-                className="bg-gray-50 border border-gray-200 rounded-lg p-3 hover:bg-gray-100 transition-colors text-center"
-              >
-                <div className="text-lg mb-1">📊</div>
-                <div className="text-sm font-medium text-black">Detailed Trends</div>
-              </Link>
-            </div>
-          </div>
+          {/* Quick Actions removed per design update */}
         </div>
       </div>
     </div>

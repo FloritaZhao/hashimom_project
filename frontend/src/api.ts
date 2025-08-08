@@ -132,6 +132,10 @@ export async function createGlutenScan(payload: GlutenScanPayload): Promise<Glut
   return request('/gluten_scans', { method: 'POST', body: payload });
 }
 
+export async function deleteGlutenScan(id: number): Promise<{ status: string; id: number }> {
+  return request(`/gluten_scans/${id}`, { method: 'DELETE' });
+}
+
 // Food Chat - New feature for chatting about analyzed food
 export interface FoodChatPayload {
   message: string;
@@ -176,4 +180,8 @@ export async function putProfile(body: ProfileIn): Promise<ProfileOut> {
 
 export async function deleteSymptom(id: number): Promise<{ status: string; id: number }> {
   return request(`/symptoms/${id}`, { method: 'DELETE' });
+}
+
+export async function deleteLab(id: number): Promise<{ status: string; id: number }> {
+  return request(`/labs/${id}`, { method: 'DELETE' });
 }

@@ -93,6 +93,16 @@ def get_lab(lab_id: int) -> Any:
     })
     return jsonify(data)
 
+@bp.route("/labs/<int:lab_id>", methods=["DELETE"])
+def delete_lab(lab_id: int) -> Any:
+    user = _u()
+    lab = Lab.query.filter_by(user_id=user.id, id=lab_id).first()
+    if not lab:
+        return jsonify(error="Not found"), 404
+    db.session.delete(lab)
+    db.session.commit()
+    return jsonify({"status": "deleted", "id": lab_id})
+
 
 def _current_trimester(profile: Profile | None) -> str | None:
     if not profile:

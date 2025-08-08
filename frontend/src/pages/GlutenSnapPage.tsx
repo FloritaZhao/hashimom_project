@@ -27,6 +27,7 @@ const GlutenSnapPage: React.FC = () => {
   const [selectedHistoryItem, setSelectedHistoryItem] = useState<PhotoHistory | null>(null);
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   
   // Chat state
   const [showChat, setShowChat] = useState<boolean>(false);
@@ -193,6 +194,24 @@ const GlutenSnapPage: React.FC = () => {
     setImageFile(null);
     setShowChat(false);
     setChatMessages([]);
+  };
+
+  const handleDeleteScan = async (scanId: number) => {
+    try {
+      await api.deleteGlutenScan(scanId);
+      // Remove from local photo history as well
+      const updated = photoHistory.filter((h) => h.result.id !== scanId);
+      setPhotoHistory(updated);
+      savePhotoHistory(updated);
+      if (selectedHistoryItem?.result.id === scanId) {
+        setSelectedHistoryItem(null);
+        setAnalysisResult(null);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setConfirmDeleteId(null);
+    }
   };
 
   // Auto-scroll to bottom of chat
@@ -373,11 +392,12 @@ const GlutenSnapPage: React.FC = () => {
           <h3 className="font-semibold text-black mb-4">📸 Recent Photos</h3>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
             {photoHistory.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleHistoryClick(item)}
-                className="aspect-square relative overflow-hidden rounded-lg border-2 border-gray-200 hover:border-blue-500 transition-colors"
-              >
+              <div key={item.id} className="aspect-square relative overflow-hidden rounded-lg border-2 border-gray-200 hover:border-blue-500 transition-colors">
+                <button
+                  onClick={() => handleHistoryClick(item)}
+                  className="absolute inset-0 w-full h-full"
+                  aria-label="Open photo"
+                />
                 <img 
                   src={item.imagePreview} 
                   alt="Food history" 
@@ -387,10 +407,32 @@ const GlutenSnapPage: React.FC = () => {
                   {item.timestamp.toLocaleDateString()}
                 </div>
                 {selectedHistoryItem?.id === item.id && (
-                  <div className="absolute inset-0 bg-blue-500 bg-opacity-20 border-2 border-blue-500 rounded-lg"></div>
+                  <div className="absolute inset-0 bg-blue-500 bg-opacity-20 border-2 border-blue-500 rounded-lg pointer-events-none"></div>
                 )}
-              </button>
+                {/* Delete button */}
+                <button
+                  className="absolute top-1 right-1 bg-black/70 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center hover:bg-black"
+                  onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(item.result.id as any); }}
+                  aria-label="Delete photo"
+                >
+                  ×
+                </button>
+              </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Confirm delete modal */}
+      {confirmDeleteId != null && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30" onClick={() => setConfirmDeleteId(null)}>
+          <div className="bg-white rounded-lg shadow-lg p-4 w-[320px]" onClick={(e) => e.stopPropagation()}>
+            <div className="text-sm text-black font-medium mb-2">Delete this photo?</div>
+            <div className="text-xs text-gray-600 mb-4">This will remove the scan from your history. This action cannot be undone.</div>
+            <div className="flex justify-end gap-2">
+              <button className="px-3 py-1 text-xs rounded bg-gray-100 text-gray-700" onClick={() => setConfirmDeleteId(null)}>Cancel</button>
+              <button className="px-3 py-1 text-xs rounded bg-red-600 text-white" onClick={() => handleDeleteScan(confirmDeleteId!)}>Delete</button>
+            </div>
           </div>
         </div>
       )}
