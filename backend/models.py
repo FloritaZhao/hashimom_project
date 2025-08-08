@@ -183,7 +183,7 @@ class GlutenScan(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     image_url = db.Column(db.String(256), nullable=False)
-    result_tag = db.Column(db.String(128), nullable=False)
+    result_tag = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self) -> dict:
