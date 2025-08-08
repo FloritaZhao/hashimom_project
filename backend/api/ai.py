@@ -36,9 +36,9 @@ def create_scan() -> Any:
     analysis_result = analyze_food_image(img)
     
     scan = GlutenScan(
-        user_id=_u().id, 
-        image_url="<provided>", 
-        result_tag=analysis_result.get("food_name", "Unknown"),
+        user_id=_u().id,
+        image_url="<provided>",
+        result_tag=(analysis_result.get("food_name", "Unknown") or "Unknown")[:120],
         created_at=datetime.utcnow()
     )
     db.session.add(scan)
@@ -100,14 +100,15 @@ Format your response as a clear, helpful analysis for someone with celiac diseas
         confidence = "medium"
         
         for line in lines:
-            if any(word in line.lower() for word in ['food', 'dish', 'appears to be', 'looks like']):
-                food_name = line.strip()[:50]  # Limit length
-            elif 'gluten' in line.lower():
+            low = line.lower()
+            if any(word in low for word in ['dish:', 'dish is', 'this is', 'looks like', 'appears to be']):
+                food_name = line.strip()[:50]
+            elif 'gluten' in low:
                 gluten_assessment = line.strip()
-            elif any(word in line.lower() for word in ['confidence', 'certain', 'sure']):
-                if 'high' in line.lower():
+            elif 'confidence' in low or 'certain' in low or 'sure' in low:
+                if 'high' in low:
                     confidence = "high"
-                elif 'low' in line.lower():
+                elif 'low' in low:
                     confidence = "low"
         
         return {
